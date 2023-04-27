@@ -1,4 +1,4 @@
-[gd_scene load_steps=10 format=2]
+[gd_scene load_steps=12 format=2]
 
 [ext_resource path="res://UI/Main_Menu.gd" type="Script" id=1]
 [ext_resource path="res://Assets/Kenney Blocks.ttf" type="DynamicFontData" id=2]
@@ -6,6 +6,45 @@
 [ext_resource path="res://Ball/Ball.tscn" type="PackedScene" id=4]
 [ext_resource path="res://UI/Boundary.gd" type="Script" id=5]
 [ext_resource path="res://Assets/select_006.wav" type="AudioStream" id=6]
+
+[sub_resource type="Shader" id=6]
+code = "shader_type canvas_item;
+
+uniform float battery : hint_range(0.0,1.0) = 1.0;
+uniform float anchor : hint_range(-1.0,1.0) = -0.5;
+uniform float speed_scale : hint_range(1.0, 10.0) = 1.0;
+uniform float fov : hint_range(0.01, 1.0) = 0.2;
+uniform vec4 background_color : hint_color = vec4(0.0, 0.1, 0.2, 1.0);
+uniform vec4 grid_color : hint_color = vec4(1.0, 0.5, 1.0, 1.0);
+
+float grid(vec2 uv, float batt) {
+    vec2 size = vec2(uv.y, uv.y * uv.y * 0.2) * 0.01;
+    uv += vec2(0.0, TIME * speed_scale * (batt + 0.05));
+    uv = abs(fract(uv) - 0.5);
+ 	vec2 lines = smoothstep(size, vec2(0.0), uv);
+ 	lines += smoothstep(size * 5.0, vec2(0.0), uv) * 0.4 * batt;
+    return clamp(lines.x + lines.y, 0.0, 3.0);
+}
+
+void fragment() {
+	vec2 uv = UV;
+	vec4 col = background_color;
+    uv.y = 3.0 / (abs(uv.y + fov) + 0.05);
+	uv.x += anchor;
+    uv.x *= uv.y * 1.0;
+    float gridVal = grid(uv, battery);
+    col = mix(background_color, grid_color, gridVal);
+	COLOR = col;
+}"
+
+[sub_resource type="ShaderMaterial" id=5]
+shader = SubResource( 6 )
+shader_param/battery = 1.0
+shader_param/anchor = -0.5
+shader_param/speed_scale = 1.0
+shader_param/fov = 0.2
+shader_param/background_color = Color( 0, 0.1, 0.2, 1 )
+shader_param/grid_color = Color( 1, 0.5, 1, 1 )
 
 [sub_resource type="DynamicFont" id=1]
 size = 95
@@ -32,6 +71,7 @@ script = ExtResource( 5 )
 polygon = PoolVector2Array( 0, 0, 0, -128, 1152, -128, 1152, 896, -128, 896, -128, -128, 0, -128, 0, 800, 1024, 800, 1024, 0 )
 
 [node name="Background" type="ColorRect" parent="."]
+material = SubResource( 5 )
 anchor_right = 1.0
 anchor_bottom = 1.0
 color = Color( 0, 0, 0, 0.501961 )
